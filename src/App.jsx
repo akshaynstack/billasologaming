@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './index.css'; // Ensure Tailwind CSS is imported here
 
@@ -9,6 +9,7 @@ const App = () => {
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const lastMessageIdRef = useRef(null); // Track the last message ID to fetch new messages
 
   const fetchLiveChatId = async () => {
     if (!videoId || !apiKey) return;
@@ -34,14 +35,20 @@ const App = () => {
     if (!liveChatId || !apiKey) return;
     try {
       const response = await axios.get(
-        `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKey}`
+        `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKey}&maxResults=200`
       );
-      setMessages((prev) => {
-        const newMessages = response.data.items.filter(
-          (msg) => !prev.some((m) => m.id === msg.id)
-        );
-        return [...newMessages, ...prev].slice(0, 50); // Keep last 50 messages
-      });
+      const newMessages = response.data.items.filter(
+        (msg) => !lastMessageIdRef.current || msg.id > lastMessageIdRef.current
+      );
+      if (newMessages.length > 0) {
+        setMessages((prev) => {
+          const updatedMessages = [...newMessages, ...prev].sort(
+            (a, b) => new Date(b.snippet.publishedAt) - new Date(a.snippet.publishedAt)
+          ).slice(0, 50); // Keep last 50 messages
+          lastMessageIdRef.current = updatedMessages[0]?.id || lastMessageIdRef.current;
+          return updatedMessages;
+        });
+      }
     } catch (err) {
       setError('Error fetching messages: ' + err.message);
     }
@@ -49,7 +56,7 @@ const App = () => {
 
   useEffect(() => {
     if (liveChatId) {
-      fetchMessages();
+      fetchMessages(); // Initial fetch
       const interval = setInterval(fetchMessages, 2000); // Poll every 2 seconds
       return () => clearInterval(interval);
     }
