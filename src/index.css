@@ -1,0 +1,30 @@
+/* Tailwind CSS Directives */
+@import "tailwindcss";
+
+/* Custom Base Styles */
+@layer base {
+  body {
+    @apply bg-gray-900;
+  }
+}
+
+/* Custom Animations */
+@layer utilities {
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Ensure Inter font is loaded */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
